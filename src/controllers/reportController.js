@@ -1,8 +1,10 @@
 const reportService = require('../services/reportServices');
 const pdfService = require('../services/pdfServices');
-const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
+function singleReportDisposition(id) {
+  const safeId = String(id).replace(/[^a-zA-Z0-9-]/g, '') || 'report';
+  return `attachment; filename="emergency-report-${safeId}.pdf"`;
+}
 
 exports.getAllEvents = async (req, res) => {
   try {
@@ -74,7 +76,7 @@ exports.generateSingleReportPDF = async (req, res) => {
     
     // Set response headers for PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="emergency-report-${req.params.id}.pdf"`);
+    res.setHeader('Content-Disposition', singleReportDisposition(req.params.id));
     res.setHeader('Content-Length', pdfBuffer.length);
     
     // Send PDF buffer

@@ -3,10 +3,10 @@ const router = express.Router();
 const schedulerService = require('../services/schedulerService');
 const CleanupService = require('../services/cleanupService');
 const reportController = require('../controllers/reportController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const requireAdmin = require('../middlewares/authMiddleware').requireAdmin;
 
 // Get scheduler status (admin only)
-router.get('/scheduler/status', authMiddleware, (req, res) => {
+router.get('/scheduler/status', requireAdmin, (req, res) => {
   try {
     const status = schedulerService.getStatus();
     res.json({
@@ -20,7 +20,7 @@ router.get('/scheduler/status', authMiddleware, (req, res) => {
 });
 
 // Get expiring announcements count (admin only)
-router.get('/announcements/expiring-summary', authMiddleware, async (req, res) => {
+router.get('/announcements/expiring-summary', requireAdmin, async (req, res) => {
   try {
     const expiringAnnouncements = await CleanupService.getExpiringAnnouncements();
     res.json({
@@ -39,7 +39,7 @@ router.get('/announcements/expiring-summary', authMiddleware, async (req, res) =
 });
 
 // Force cleanup (admin only)
-router.post('/cleanup/force', authMiddleware, async (req, res) => {
+router.post('/cleanup/force', requireAdmin, async (req, res) => {
   try {
     const result = await CleanupService.performManualCleanup();
     res.json({
@@ -52,8 +52,8 @@ router.post('/cleanup/force', authMiddleware, async (req, res) => {
 });
 
 // Admin report management routes
-router.get('/reports/all', authMiddleware, reportController.getAllReportsAdmin);
-router.get('/reports/status/:status', authMiddleware, reportController.getReportsByStatus);
-router.put('/reports/:id/status', authMiddleware, reportController.updateReportStatus);
+router.get('/reports/all', requireAdmin, reportController.getAllReportsAdmin);
+router.get('/reports/status/:status', requireAdmin, reportController.getReportsByStatus);
+router.put('/reports/:id/status', requireAdmin, reportController.updateReportStatus);
 
 module.exports = router;

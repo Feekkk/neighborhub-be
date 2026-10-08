@@ -1,6 +1,9 @@
 const prisma = require('../config/prisma');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
+const pickFields = require('../utils/pickFields');
+
+const USER_UPDATE_FIELDS = ['username', 'email', 'password', 'phoneNumber', 'address', 'gender', 'birthday'];
 const nodemailer = require('nodemailer');
 
 // Get all users (include new fields)
@@ -69,12 +72,19 @@ exports.createUser = async (data) => {
   });
 };
 
+exports.collectUserUpdate = (data) => {
+  const updateData = pickFields(data, USER_UPDATE_FIELDS);
+  if (typeof updateData.password !== 'string') {
+    delete updateData.password;
+  }
+  return updateData;
+};
+
 // Update user (with optional fields)
 exports.updateUser = async (id, data) => {
-  const updateData = { ...data };
-  
-  // If password is being updated, hash it
-  if (updateData.password) {
+  const updateData = exports.collectUserUpdate(data);
+
+  if (typeof updateData.password === 'string') {
     updateData.password = await bcrypt.hash(updateData.password, 10);
   }
   

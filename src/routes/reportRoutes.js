@@ -2,22 +2,20 @@ const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const requireAdmin = authMiddleware.requireAdmin;
 
-// Basic CRUD routes
-router.get('/', reportController.getAllReports);
-router.get('/:id', reportController.getReportById);
+router.get('/pdf/all', requireAdmin, reportController.generateAllReportsPDF);
+router.get('/pdf/:id', requireAdmin, reportController.generateSingleReportPDF);
+
+router.get('/heatmap/data', authMiddleware, reportController.getHeatmapData);
+router.get('/heatmap/bounds', authMiddleware, reportController.getReportsInBounds);
+router.get('/heatmap/stats', authMiddleware, reportController.getHeatmapStats);
+router.get('/heatmap/time-based', authMiddleware, reportController.getTimeBasedHeatmapData);
+
+router.get('/', authMiddleware, reportController.getAllReports);
+router.get('/:id', authMiddleware, reportController.getReportById);
 router.post('/', reportController.createReport);
-router.put('/:id', authMiddleware, reportController.updateReport);
-router.delete('/:id', authMiddleware, reportController.deleteReport);
-
-// PDF generation routes
-router.get('/pdf/all', authMiddleware, reportController.generateAllReportsPDF);
-router.get('/pdf/:id', authMiddleware, reportController.generateSingleReportPDF);
-
-// Heatmap routes for Google Maps integration
-router.get('/heatmap/data', reportController.getHeatmapData);
-router.get('/heatmap/bounds', reportController.getReportsInBounds);
-router.get('/heatmap/stats', reportController.getHeatmapStats);
-router.get('/heatmap/time-based', reportController.getTimeBasedHeatmapData);
+router.put('/:id', requireAdmin, reportController.updateReport);
+router.delete('/:id', requireAdmin, reportController.deleteReport);
 
 module.exports = router;

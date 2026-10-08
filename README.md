@@ -144,9 +144,16 @@ nano .env
 ```env
 # Database Configuration
 DATABASE_URL="postgresql://neighborhub_user:your_secure_password@localhost:5432/neighborhub"
+POSTGRES_PASSWORD="your_secure_password"
 
-# JWT Secret (keep this secure)
-JWT_SECRET="your_long_secure_jwt_secret_key_here"
+# JWT secret. Generate one; do not reuse a published example.
+#   openssl rand -base64 48
+JWT_SECRET="<paste the generated value>"
+
+# Admin login (POST /api/auth/admin/login). Password must be at least 12 characters.
+# Do not use admin-account / admin123.
+ADMIN_USERNAME="<new admin username>"
+ADMIN_PASSWORD="<long random password>"
 
 # Server Port
 PORT=3000
@@ -158,6 +165,8 @@ EMAIL_PASSWORD=your-gmail-app-password
 # Frontend URL (your droplet IP)
 FRONTEND_URL=http://your_droplet_ip
 ```
+
+The process exits on startup if `JWT_SECRET` is missing, shorter than 32 characters, or one of the old published examples. Login tokens expire after 7 days. Tokens that were issued without an expiry are rejected.
 
 **Save and exit nano:** `Ctrl + X`, then `Y`, then `Enter`
 
@@ -271,7 +280,7 @@ curl http://your_droplet_ip
 # Test specific endpoints
 curl http://your_droplet_ip/api/events
 curl http://your_droplet_ip/api/announcements
-curl http://your_droplet_ip/api/users
+curl -H "Authorization: Bearer <admin-token>" http://your_droplet_ip/api/users
 ```
 
 **Check PM2 status:**
