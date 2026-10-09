@@ -1,5 +1,16 @@
 // services
 const prisma = require('../config/prisma');
+const pickFields = require('../utils/pickFields');
+
+const PUBLIC_REPORT_FIELDS = ['title', 'description', 'latitude', 'longitude', 'time', 'priority'];
+const ADMIN_REPORT_FIELDS = [...PUBLIC_REPORT_FIELDS, 'resolvedAt', 'status'];
+
+exports.buildReportCreateData = (data) => ({
+  ...pickFields(data, PUBLIC_REPORT_FIELDS),
+  status: 'OPEN',
+});
+
+exports.buildReportUpdateData = (data) => pickFields(data, ADMIN_REPORT_FIELDS);
 
 // Get all reports (only OPEN status for regular users)
 exports.getAllReports = async () => {
@@ -31,12 +42,15 @@ exports.getReportById = async (id) => {
 
 // Create report
 exports.createReport = async (data) => {
-  return prisma.reportEmergency.create({ data });
+  return prisma.reportEmergency.create({ data: exports.buildReportCreateData(data) });
 };
 
 // Update report
 exports.updateReport = async (id, data) => {
-  return prisma.reportEmergency.update({ where: { id: id }, data });
+  return prisma.reportEmergency.update({
+    where: { id: id },
+    data: exports.buildReportUpdateData(data),
+  });
 };
 
 // Delete report

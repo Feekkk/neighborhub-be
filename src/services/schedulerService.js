@@ -27,6 +27,7 @@ class SchedulerService {
     this.cleanupInterval = setInterval(() => {
       this.runCleanup();
     }, 24 * 60 * 60 * 1000);
+    this.cleanupInterval.unref();
 
     this.isRunning = true;
     console.log('✅ Scheduler started successfully - cleanup will run every 24 hours');
