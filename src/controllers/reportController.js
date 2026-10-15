@@ -11,17 +11,19 @@ exports.getAllEvents = async (req, res) => {
     const reports = await reportService.getAllReports();
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
 exports.getReportById = async (req, res) => {
   try {
     const report = await reportService.getReportById(req.params.id);
-    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!reportService.canViewReport(report, req.user)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
     res.json(report);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -30,7 +32,7 @@ exports.createReport = async (req, res) => {
     const report = await reportService.createReport(req.body);
     res.status(201).json(report);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -39,7 +41,7 @@ exports.updateReport = async (req, res) => {
     const report = await reportService.updateReport(req.params.id, req.body);
     res.json(report);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -48,7 +50,7 @@ exports.deleteReport = async (req, res) => {
     await reportService.deleteReport(req.params.id);
     res.status(204).send();
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -65,7 +67,7 @@ exports.generateAllReportsPDF = async (req, res) => {
     // Send PDF buffer
     res.send(pdfBuffer);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -85,7 +87,7 @@ exports.generateSingleReportPDF = async (req, res) => {
     if (err.message === 'Report not found') {
       res.status(404).json({ error: 'Report not found' });
     } else {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: 'Request failed' });
     }
   }
 };
@@ -95,7 +97,7 @@ exports.getAllReports = async (req, res) => {
     const reports = await reportService.getAllReports();
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -105,7 +107,7 @@ exports.getAllReportsAdmin = async (req, res) => {
     const reports = await reportService.getAllReportsAdmin();
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -122,7 +124,7 @@ exports.updateReportStatus = async (req, res) => {
     const report = await reportService.updateReport(req.params.id, { status });
     res.json(report);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -133,7 +135,7 @@ exports.getReportsByStatus = async (req, res) => {
     const reports = await reportService.getReportsByStatus(status);
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -167,7 +169,7 @@ exports.getHeatmapData = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -196,7 +198,7 @@ exports.getReportsInBounds = async (req, res) => {
       bounds: bounds
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -224,7 +226,7 @@ exports.getHeatmapStats = async (req, res) => {
       bounds: bounds
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -255,6 +257,6 @@ exports.getTimeBasedHeatmapData = async (req, res) => {
       timeFilter: timeFilterValue
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };

@@ -2,13 +2,10 @@ const eventService = require('../services/eventServices');
 
 exports.getAllEvents = async (req, res) => {
   try {
-    console.log('Fetching all events...'); // Add this debug log
     const events = await eventService.getAllEvents();
-    console.log('Events found:', events.length); // Add this debug log
     res.json(events);
-  } catch (err) {
-    console.error('Error fetching events:', err); // Add this debug log
-    res.status(500).json({ error: err.message });
+  } catch {
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -18,19 +15,16 @@ exports.getEventById = async (req, res) => {
     if (!event) return res.status(404).json({ error: 'Event not found' });
     res.json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
 exports.createEvent = async (req, res) => {
   try {
-    console.log('Creating event with data:', req.body); // Add this debug log
     const event = await eventService.createEvent(req.body);
-    console.log('Event created:', event); // Add this debug log
     res.status(201).json(event);
-  } catch (err) {
-    console.error('Error creating event:', err); // Add this debug log
-    res.status(400).json({ error: err.message });
+  } catch {
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -39,7 +33,7 @@ exports.updateEvent = async (req, res) => {
     const event = await eventService.updateEvent(req.params.id, req.body);
     res.json(event);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -48,6 +42,6 @@ exports.deleteEvent = async (req, res) => {
     await eventService.deleteEvent(req.params.id);
     res.status(204).send();
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };

@@ -35,9 +35,44 @@ exports.getReportsByStatus = async (status) => {
   });
 };
 
-// Get report by ID
+exports.canViewReport = (report, user) => {
+  if (!report) return false;
+  if (user?.role === 'admin') return true;
+  return report.status === 'OPEN';
+};
+
+exports.buildOpenReportWhere = (bounds) => {
+  const { northEast, southWest } = bounds;
+  return {
+    status: 'OPEN',
+    latitude: {
+      gte: southWest.lat,
+      lte: northEast.lat,
+    },
+    longitude: {
+      gte: southWest.lng,
+      lte: northEast.lng,
+    },
+  };
+};
+
+const TIME_WINDOWS = {
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+};
+
+exports.buildTimeBasedWhere = (bounds, timeFilter = 'all') => {
+  const where = { ...exports.buildOpenReportWhere(bounds) };
+  const windowMs = TIME_WINDOWS[timeFilter];
+  if (windowMs) {
+    where.createdAt = { gte: new Date(Date.now() - windowMs) };
+  }
+  return where;
+};
+
 exports.getReportById = async (id) => {
-  return prisma.reportEmergency.findUnique({ where: { id: id } }); 
+  return prisma.reportEmergency.findUnique({ where: { id: id } });
 };
 
 // Create report
@@ -62,20 +97,8 @@ exports.deleteReport = async (id) => {
 
 // Get reports within a bounding box for heatmap
 exports.getReportsInBounds = async (bounds) => {
-  const { northEast, southWest } = bounds;
-  
   return prisma.reportEmergency.findMany({
-    where: {
-      status: 'OPEN',
-      latitude: {
-        gte: southWest.lat,
-        lte: northEast.lat
-      },
-      longitude: {
-        gte: southWest.lng,
-        lte: northEast.lng
-      }
-    },
+    where: exports.buildOpenReportWhere(bounds),
     select: {
       id: true,
       latitude: true,
@@ -89,20 +112,8 @@ exports.getReportsInBounds = async (bounds) => {
 
 // Get heatmap data with clustering/aggregation by grid
 exports.getHeatmapData = async (bounds, gridSize = 0.01) => {
-  const { northEast, southWest } = bounds;
-  
   const reports = await prisma.reportEmergency.findMany({
-    where: {
-      status: 'OPEN',
-      latitude: {
-        gte: southWest.lat,
-        lte: northEast.lat
-      },
-      longitude: {
-        gte: southWest.lng,
-        lte: northEast.lng
-      }
-    },
+    where: exports.buildOpenReportWhere(bounds),
     select: {
       latitude: true,
       longitude: true,
@@ -156,39 +167,20 @@ exports.getHeatmapData = async (bounds, gridSize = 0.01) => {
 
 // Get heatmap statistics
 exports.getHeatmapStats = async (bounds) => {
-  const { northEast, southWest } = bounds;
-  
+  const boundsWhere = exports.buildOpenReportWhere(bounds);
+
   const totalReports = await prisma.reportEmergency.count({
-    where: {
-      latitude: {
-        gte: southWest.lat,
-        lte: northEast.lat
-      },
-      longitude: {
-        gte: southWest.lng,
-        lte: northEast.lng
-      }
-    }
+    where: boundsWhere,
   });
 
   const priorityStats = await prisma.reportEmergency.groupBy({
     by: ['priority'],
-    where: {
-      latitude: {
-        gte: southWest.lat,
-        lte: northEast.lat
-      },
-      longitude: {
-        gte: southWest.lng,
-        lte: northEast.lng
-      }
-    },
+    where: boundsWhere,
     _count: {
       priority: true
     }
   });
 
-  // Get reports by time periods (last 30 days, last 7 days, last 24 hours)
   const now = new Date();
   const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -196,25 +188,13 @@ exports.getHeatmapStats = async (bounds) => {
 
   const recentStats = await Promise.all([
     prisma.reportEmergency.count({
-      where: {
-        latitude: { gte: southWest.lat, lte: northEast.lat },
-        longitude: { gte: southWest.lng, lte: northEast.lng },
-        createdAt: { gte: last24Hours }
-      }
+      where: { ...boundsWhere, createdAt: { gte: last24Hours } }
     }),
     prisma.reportEmergency.count({
-      where: {
-        latitude: { gte: southWest.lat, lte: northEast.lat },
-        longitude: { gte: southWest.lng, lte: northEast.lng },
-        createdAt: { gte: last7Days }
-      }
+      where: { ...boundsWhere, createdAt: { gte: last7Days } }
     }),
     prisma.reportEmergency.count({
-      where: {
-        latitude: { gte: southWest.lat, lte: northEast.lat },
-        longitude: { gte: southWest.lng, lte: northEast.lng },
-        createdAt: { gte: last30Days }
-      }
+      where: { ...boundsWhere, createdAt: { gte: last30Days } }
     })
   ]);
 
@@ -234,36 +214,8 @@ exports.getHeatmapStats = async (bounds) => {
 
 // Get time-based heatmap data
 exports.getTimeBasedHeatmapData = async (bounds, timeFilter = 'all') => {
-  const { northEast, southWest } = bounds;
-  let dateFilter = {};
-
-  const now = new Date();
-  switch (timeFilter) {
-    case '24h':
-      dateFilter = { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) };
-      break;
-    case '7d':
-      dateFilter = { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
-      break;
-    case '30d':
-      dateFilter = { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
-      break;
-    default:
-      dateFilter = {}; // All time
-  }
-
   return prisma.reportEmergency.findMany({
-    where: {
-      latitude: {
-        gte: southWest.lat,
-        lte: northEast.lat
-      },
-      longitude: {
-        gte: southWest.lng,
-        lte: northEast.lng
-      },
-      ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })
-    },
+    where: exports.buildTimeBasedWhere(bounds, timeFilter),
     select: {
       id: true,
       latitude: true,
