@@ -45,4 +45,15 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.use((err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  const status = Number(err.status || err.statusCode);
+  if (status >= 400 && status < 500) {
+    return res.status(status).json({ error: 'Invalid request' });
+  }
+  return res.status(500).json({ error: 'Request failed' });
+});
+
 module.exports = app;

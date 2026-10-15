@@ -15,7 +15,7 @@ router.get('/scheduler/status', requireAdmin, (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 });
 
@@ -34,7 +34,7 @@ router.get('/announcements/expiring-summary', requireAdmin, async (req, res) => 
       }))
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 });
 
@@ -47,7 +47,7 @@ router.post('/cleanup/force', requireAdmin, async (req, res) => {
       result: result
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 });
 

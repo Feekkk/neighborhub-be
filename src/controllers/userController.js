@@ -5,7 +5,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await userService.getAllUsers();
     res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -15,7 +15,7 @@ exports.getUserById = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -55,7 +55,7 @@ exports.createUser = async (req, res) => {
     const user = await userService.createUser(req.body);
     res.status(201).json(user);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -107,7 +107,7 @@ exports.updateUser = async (req, res) => {
     const user = await userService.updateUser(userId, req.body);
     res.json(user);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -116,7 +116,7 @@ exports.deleteUser = async (req, res) => {
     await userService.deleteUser(req.params.id);
     res.status(204).send();
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Invalid request' });
   }
 };
 
@@ -147,8 +147,7 @@ exports.requestPasswordReset = async (req, res) => {
     res.json({ 
       message: 'If the email exists, a password reset link has been sent' 
     });
-  } catch (err) {
-    console.error('Password reset request error:', err);
+  } catch {
     res.status(500).json({ error: 'Failed to process password reset request' });
   }
 };
@@ -174,7 +173,7 @@ exports.verifyResetToken = async (req, res) => {
       email: user.email // Can be used to show which account is being reset
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };
 
@@ -208,8 +207,8 @@ exports.resetPassword = async (req, res) => {
     });
   } catch (err) {
     if (err.message === 'Invalid or expired reset token') {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Request failed' });
   }
 };

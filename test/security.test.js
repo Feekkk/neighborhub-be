@@ -15,7 +15,13 @@ const app = require('../src/app');
 const schedulerService = require('../src/services/schedulerService');
 const { getJwtSecret, getAdminCredentials, signToken } = require('../src/config/authConfig');
 const { collectUserUpdate } = require('../src/services/userServices');
-const { buildReportCreateData, buildReportUpdateData } = require('../src/services/reportServices');
+const {
+  buildReportCreateData,
+  buildReportUpdateData,
+  canViewReport,
+  buildOpenReportWhere,
+  buildTimeBasedWhere,
+} = require('../src/services/reportServices');
 
 let server;
 let base;
@@ -200,6 +206,62 @@ test('committed runtime config and auth code do not keep the old admin password 
   assert.equal(routes.includes('admin123'), false);
   assert.equal(routes.includes('admin-account'), false);
   assert.equal(middleware.includes('console.'), false);
+});
+
+test('login rejects prisma filter objects as the username or email', async () => {
+  for (const body of [
+    { username: { not: 'nobody' }, password: 'password-a' },
+    { email: { contains: '@' }, password: 'password-a' },
+    { username: ['alice'], password: 'password-a' },
+  ]) {
+    const response = await send('POST', '/api/auth/login', { body });
+    assert.equal(response.status, 400);
+    const payload = await response.json();
+    assert.equal(Object.hasOwn(payload, 'token'), false);
+  }
+});
+
+test('closed reports are hidden from members and heatmap filters stay open-only', () => {
+  const member = { userId: 'user-1' };
+  const admin = { userId: 'admin', role: 'admin' };
+  assert.equal(canViewReport({ status: 'CLOSED' }, member), false);
+  assert.equal(canViewReport({ status: 'RESOLVED' }, member), false);
+  assert.equal(canViewReport({ status: 'OPEN' }, member), true);
+  assert.equal(canViewReport({ status: 'CLOSED' }, admin), true);
+  assert.equal(canViewReport(null, admin), false);
+
+  const bounds = {
+    northEast: { lat: 1, lng: 1 },
+    southWest: { lat: 0, lng: 0 },
+  };
+  assert.equal(buildOpenReportWhere(bounds).status, 'OPEN');
+  const allTime = buildTimeBasedWhere(bounds, 'all');
+  assert.equal(allTime.status, 'OPEN');
+  assert.equal(Object.hasOwn(allTime, 'createdAt'), false);
+  const recent = buildTimeBasedWhere(bounds, '24h');
+  assert.equal(recent.status, 'OPEN');
+  assert.ok(recent.createdAt.gte instanceof Date);
+});
+
+test('client errors do not include stacks, query text, or password hashes', async () => {
+  const member = sign({ userId: 'user-1', exp: Math.floor(Date.now() / 1000) + 3600 });
+  const profile = await send('GET', '/api/users/user-1', { token: member });
+  const profileText = await profile.text();
+  assert.equal(profileText.includes('prisma'), false);
+  assert.equal(profileText.includes('node_modules'), false);
+  assert.equal(profileText.includes('$2'), false);
+
+  const response = await fetch(`${base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{',
+  });
+  const text = await response.text();
+  assert.equal(response.status, 400);
+  assert.equal(response.headers.get('content-type').includes('application/json'), true);
+  assert.equal(text.includes('node_modules'), false);
+  assert.equal(text.includes('SyntaxError'), false);
+  assert.equal(text.includes('<pre>'), false);
 });
 
 test('community events and announcements stay publicly readable', async () => {

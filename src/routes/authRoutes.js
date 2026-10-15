@@ -6,7 +6,11 @@ const { signToken, getAdminCredentials, credentialsMatch } = require('../config/
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, phoneNumber, address, gender, birthday } = req.body || {};
+    const body = req.body || {};
+    const { phoneNumber, address, gender, birthday } = body;
+    const username = typeof body.username === 'string' ? body.username : '';
+    const email = typeof body.email === 'string' ? body.email : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -69,7 +73,10 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { username, email, password } = req.body || {};
+    const body = req.body || {};
+    const username = typeof body.username === 'string' ? body.username : '';
+    const email = typeof body.email === 'string' ? body.email : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
     if (!password) {
       return res.status(400).json({ error: 'Password is required' });
@@ -79,13 +86,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username or email is required' });
     }
 
+    const identity = [];
+    if (username) identity.push({ username });
+    if (email) identity.push({ email });
+
     const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: username },
-          { email: email }
-        ]
-      }
+      where: identity.length === 1 ? identity[0] : { OR: identity },
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
